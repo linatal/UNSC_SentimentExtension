@@ -1,7 +1,9 @@
 from csv import writer
 from re import sub
 import configparser
+import os
 
+"""Takes /LSDaug2015 and cretaes lsd.tsv"""
 
 def extract_polarity(polarity: str):
     """Extract the polarity label.
@@ -66,6 +68,8 @@ def main(unprocessed_lsd, unprocessed_lsd_neg, lsd):
 
 
 if __name__ == "__main__":
+    cwd = os.getcwd()
+    print(cwd)
     config = configparser.ConfigParser()
     # config.read("config.ini") # CHANGE
     config.read("../config_temp.ini")

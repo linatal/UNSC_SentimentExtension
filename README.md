@@ -1,8 +1,8 @@
-Lexicoder project for UNSC, per debate and per speech  
-need to open file, conduct lexiocoder analysis, and save score in table
+# Extension for UNSC with Sentiment Scores per Debate and per Speech  
+open file, conduct lexiocoder analysis, and save score in table
 
 input: speeches.tsv, meta.tsv
-output: speeches.tsv with column sentiment, meta.tsv with column sentiment
+output: speeches_ex.tsv with column sentiment, meta_ex.tsv with column sentiment
 
 ## Prepare Corpus
 ### For Lexicoder sentiment analysis:
