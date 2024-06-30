@@ -3,6 +3,7 @@ import pandas as pd
 import glob
 import os
 import re
+from pathlib import Path
 
 def create_score_each_file(speeches_folder, lexicoder_data):
     list_fullpath = glob.glob(speeches_folder+"/*.txt")
@@ -24,7 +25,6 @@ def create_score_each_file(speeches_folder, lexicoder_data):
     return fn_score_dict
 
 def sort_dict_according2list(list_from_orig_df, dict_to_sort):
-
     index_map = {v:i for i, v in enumerate(list_from_orig_df)}
     dict_sorted = sorted(dict_to_sort.items(), key=lambda pair: index_map[pair[0]])
     return dict_sorted
@@ -56,7 +56,6 @@ def preprocess(text: str):
     """Remove punctuation, transform to lower case."""
     text = re.sub(r'[^\w\s]', '', text)
     text = text.lower()
-    print("preprocessed text: ", text[:15])
     return text
 
 
@@ -65,20 +64,13 @@ def find_sentiment_entries(string, LEXICODER_data):
     Check the words in the string that are contained in the sentiment dictionary.
     Return the string and the words and their polarity.
     The polarities are negative|positive|neg_negative|neg_positive.
-
-    Args
-    ----
-    edu (str): input string
-    entry (list): list with LSD lexEntry, nrOfTokens, isPrefix, polarity
-
-    Return
-    ------
-    str, list(tuple(str, str)): the preproc sentence, the sentiment words and their polarities.
+    input: input string, lsd.tsv
+    return: string preprocessed and their polarities
     """
     df_lsd = pd.read_csv(LEXICODER_data, sep="\t")
     out_entries = []
-    edu_pp = preprocess(string)
-    edu_pp_separated = edu_pp.split()
+    string_pp = preprocess(string)
+    string_pp_separated = string_pp.split()
 
     for row in df_lsd.values:
         entry = row.tolist()
@@ -86,33 +78,26 @@ def find_sentiment_entries(string, LEXICODER_data):
         if entry[1] == 1:
             # lex entry is not a prefix
             if entry[2] == 0:
-                out_entries.extend([(entry[0], entry[3]) for t in edu_pp_separated if entry[0] == t])
+                out_entries.extend([(entry[0], entry[3]) for t in string_pp_separated if entry[0] == t])
             else:
             # if lex entry is a prefix
-                out_entries.extend([(entry[0], entry[3]) for t in edu_pp_separated if t.startswith(entry[0])])
+                out_entries.extend([(entry[0], entry[3]) for t in string_pp_separated if t.startswith(entry[0])])
         else:
             # lex entry is not a prefix
             if entry[2] == 0:
                 pattern_in_sent = entry[0] + " "
-                out_entries.extend([(entry[0], entry[3]) for i in range((len(edu_pp.split(pattern_in_sent)) - 1))])
-                if edu_pp.endswith(entry[0]):
+                out_entries.extend([(entry[0], entry[3]) for i in range((len(string_pp.split(pattern_in_sent)) - 1))])
+                if string_pp.endswith(entry[0]):
                     out_entries.append((entry[0], entry[3]))
                 else:
-                    out_entries.extend([(entry[0], entry[3]) for i in range((len(edu_pp.split(entry[0])) - 1))])
-    return edu_pp, out_entries
+                    out_entries.extend([(entry[0], entry[3]) for i in range((len(string_pp.split(entry[0])) - 1))])
+    return string_pp, out_entries
 
 def calc_sentiment_score(sentence: str, pol_words):
     """Calculate the sentiment score of a sentence.
     The score is in [-1,1] and score = (n_positive_words - n_negative_words) / n_words.
-
-    Args
-    ----
-    sentence (str): The sentence.
-    pol_words (list(tuple(str, str)) or list(str)): The words and their polarities or just polarites.
-
-    Return
-    ------
-    float: The sentiment score.
+    input: input string, words and their polarities or just polarites
+    return: sentiment score
     """
     neg = sum([1 for t in pol_words if "negative" in t])
     neg_neg = sum([1 for t in pol_words if "neg_negative" in t])
@@ -127,8 +112,8 @@ def calc_sentiment_score(sentence: str, pol_words):
 
 
 if __name__ == '__main__':
-    cwd = os.getcwd()
-    print(cwd)
+    #cwd = os.getcwd()
+    #print(cwd)
     # manage paths in config file
     config = configparser.ConfigParser()
     #config.read("config.ini") # CHANGE
@@ -139,7 +124,7 @@ if __name__ == '__main__':
     speeches_folder = config["DATA_INPUT"]["corpus_raw_dir"]
     lexicoder_data = config["LEXICODER"]["LSD"]
     output_dir = config["DATA_OUTPUT"]["output_dir"]
-    #prepare dfs
+    #prepare dataframes
     df_meta = pd.read_csv(meta_path, sep="\t")
     df_speech = pd.read_csv(speaker_path, sep="\t")
     df_meta = df_meta.rename(columns={"Unnamed: 0":"old_idx"})
@@ -148,6 +133,8 @@ if __name__ == '__main__':
     fn_score_dict = create_score_each_file(speeches_folder, lexicoder_data)
     df_speech_sc, df_debate_sc = append_score_table(df_speech, df_meta, fn_score_dict)
 
+    # check if output path exists, if not create
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     df_speech_sc.to_csv(output_dir+"/speeches_subcorpus_sc.tsv", sep="\t", index=False)
     df_debate_sc.to_csv(output_dir+"/meta_subcorpus_sc.tsv", sep="\t", index=False)
