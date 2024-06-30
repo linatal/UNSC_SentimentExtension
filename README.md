@@ -1,8 +1,6 @@
 # Extension for UNSC with Sentiment Scores per Debate and per Speech  
-open file, conduct lexiocoder analysis, and save score in table
 
-input: speeches.tsv, meta.tsv
-output: speeches_ex.tsv with column sentiment, meta_ex.tsv with column sentiment
+Compute sentiment scores for UN Security Council debates and speeches, based on the corpus by Schoenfeld et al. 2019: 
 
 ## Prepare Corpus
 ### For Lexicoder sentiment analysis:
@@ -44,3 +42,4 @@ Run:
 ```$python analyze:speeches_lexicoder.py```
 
 The new tables with lexicoder-based sentiment scores per debate (`meta_subcorpus_sc.tsv`) and per speech (`speeches_subcorpus_sc.tsv`) are saved under `/output`.
+
