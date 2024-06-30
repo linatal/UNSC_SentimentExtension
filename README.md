@@ -37,3 +37,10 @@ If you want to use your own subcorpus, under `\data` you need a folder with:
 2. subcorpus meta.tsv
 3. subcorpus speeches.tsv
 4. Please redefine your paths in `config.ini`
+
+## Compute Lexicoder sentiment scores
+Run:   
+```$cd code```  
+```$python analyze:speeches_lexicoder.py```
+
+The new tables with lexicoder-based sentiment scores per debate (`meta_subcorpus_sc.tsv`) and per speech (`speeches_subcorpus_sc.tsv`) are saved under `/output`.
