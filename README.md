@@ -37,9 +37,9 @@ If you want to use your own subcorpus, under `\data` you need a folder with:
 4. Please redefine your paths in `config.ini`
 
 ## Compute Lexicoder sentiment scores
-Run:   
-```$cd code```  
-```$python analyze:speeches_lexicoder.py```
+Processing the full corpus can take a while (up to several hours), see terminal process bar and estimated time when running. 
+To start the script, go to /code directory: ```$cd code```  
+and run: ```$python analyze:speeches_lexicoder.py```
 
 The new tables with lexicoder-based sentiment scores per debate (`meta_subcorpus_sc.tsv`) and per speech (`speeches_subcorpus_sc.tsv`) are saved under `/output`.
 
