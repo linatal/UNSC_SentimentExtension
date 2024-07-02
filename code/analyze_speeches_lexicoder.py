@@ -4,16 +4,18 @@ import glob
 import os
 import re
 from pathlib import Path
+import time
+from datetime import timedelta
+from tqdm import tqdm
 
 def create_score_each_file(speeches_folder, lexicoder_data):
     list_fullpath = glob.glob(speeches_folder+"/*.txt")
     list_filename = [os.path.basename(x) for x in list_fullpath]
     pol_word_list = []
     score_list = []
-    for f in list_fullpath:
+    for f in tqdm(list_fullpath,desc='looping through files applying lexicoder'):
         x = open(f).read()
         x_prepr = preprocess(x)
-        #find_sentiment_entries(x_prepr, lexicoder_data)
         # calculate sentiment score for each speech
         line_preprocessed, out_entries = find_sentiment_entries(x_prepr, lexicoder_data)
         pol_words, score = calc_sentiment_score(line_preprocessed, out_entries)
@@ -24,29 +26,55 @@ def create_score_each_file(speeches_folder, lexicoder_data):
     fn_score_dict = dict(zip(list_filename, score_list))
     return fn_score_dict
 
+"""
 def sort_dict_according2list(list_from_orig_df, dict_to_sort):
     index_map = {v:i for i, v in enumerate(list_from_orig_df)}
     dict_sorted = sorted(dict_to_sort.items(), key=lambda pair: index_map[pair[0]])
     return dict_sorted
-
+"""
 
 def append_score_table(df_speech, df_debate, fn_score_dict):
     # sort dictionary based on df.filename, creating first an index map
     list_df_fn = df_speech["filename"].to_list()
+    #assert df_speech.shape[0] == len(fn_score_dict)
     #fn_score_dict_sorted = sorted(fn_score_dict.items(), key=lambda pair: list_df_fn.index(pair[0]))
-    assert len(list_df_fn) == len(fn_score_dict)
-    fn_score_dict_sorted = sort_dict_according2list(list_df_fn, fn_score_dict)
-    df_speech["lexicoder_score"] = [x[1] for x in fn_score_dict_sorted]
-    # TODO: mittelwert aus allen speeches für debate
+    #assert len(list_df_fn) == len(fn_score_dict)
+    #fn_score_dict_sorted = sort_dict_according2list(list_df_fn, fn_score_dict)
+    #assert len(fn_score_dict_sorted) == len(fn_score_dict)
+    #df_speech["lexicoder_score"] = [x[1] for x in fn_score_dict_sorted]
+    # TODO print how many debates were not included
+    list_scores_speeches = []
+    for k, row in df_speech.iterrows():
+        if fn_score_dict.get(row["filename"]) is not None:
+            list_scores_speeches.append(fn_score_dict.get(row["filename"]))
+        else:
+            list_scores_speeches.append(None)
+    assert df_speech.shape[0] == len(list_scores_speeches)
+    df_speech["lexicoder_score"] = list_scores_speeches
+    print()
+
+    # average value from all speeches for debate
     basename_list = list(set(df_speech["basename"].to_list()))
     debates_dict = {}
     for bn in basename_list:
         df_bn = df_speech[df_speech["basename"] == bn]
         summi = df_bn["lexicoder_score"].mean()
         debates_dict[bn] = summi
-    assert len(df_debate["basename"].to_list()) == len(debates_dict)
-    debate_score_dict_sorted = sort_dict_according2list(df_debate["basename"].to_list(), debates_dict)
-    df_debate["lexicoder_score"] = [x[1] for x in debate_score_dict_sorted]
+
+    #debate_score_dict_sorted = sort_dict_according2list(df_debate["basename"].to_list(), debates_dict)
+
+    #df_debate["lexicoder_score"] = [x[1] for x in debate_score_dict_sorted]
+
+    # TODO print how many debates were not included
+    list_scores_debate = []
+    for k, row in df_debate.iterrows():
+        if debates_dict.get(row["basename"]) is not None:
+            list_scores_debate.append(debates_dict.get(row["basename"]))
+        else:
+            list_scores_debate.append(None)
+    assert df_debate.shape[0] == len(list_scores_debate)
+    df_debate["lexicoder_score"] = list_scores_debate
+
     return df_speech, df_debate
 
 
@@ -112,6 +140,7 @@ def calc_sentiment_score(sentence: str, pol_words):
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     #cwd = os.getcwd()
     #print(cwd)
     # manage paths in config file
@@ -123,7 +152,8 @@ if __name__ == '__main__':
     speaker_path = config["DATA_INPUT"]["speaker_table"]
     speeches_folder = config["DATA_INPUT"]["corpus_raw_dir"]
     lexicoder_data = config["LEXICODER"]["LSD"]
-    output_dir = config["DATA_OUTPUT"]["output_dir"]
+    output_dir = Path(config["DATA_OUTPUT"]["output_dir"])
+
     #prepare dataframes
     df_meta = pd.read_csv(meta_path, sep="\t")
     df_speech = pd.read_csv(speaker_path, sep="\t")
@@ -136,8 +166,15 @@ if __name__ == '__main__':
     # check if output path exists, if not create
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    df_speech_sc.to_csv(output_dir+"/speeches_subcorpus_sc.tsv", sep="\t", index=False)
-    df_debate_sc.to_csv(output_dir+"/meta_subcorpus_sc.tsv", sep="\t", index=False)
+    df_speech_sc.to_csv(output_dir / "speeches_sc.tsv", sep="\t", index=False)
+    df_debate_sc.to_csv(output_dir / "meta_sc.tsv", sep="\t", index=False)
+
+    end_time = time.time()
+    execution_time =  end_time - start_time
+    print("Execution time in sec:", execution_time)
+    print("Execution time in hh:mm:ss format:", (timedelta(seconds=execution_time)))
+
+    print("Processed all files with Lexicoder. Tables were saved under: ", output_dir )
 
 
 
